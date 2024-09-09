@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TextInput } from "react-native";
 import { create } from "twrnc";
 
-const tw = create(require("../../tailwind.config.js"));
+const tw = create(require("../../../tailwind.config.js"));
 
 interface PhoneNumberStepProps {
   phoneNumber: string;

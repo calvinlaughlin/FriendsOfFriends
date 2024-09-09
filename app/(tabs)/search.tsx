@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { create } from "twrnc";
 
-const tw = create(require("../tailwind.config.js"));
+const tw = create(require("../../tailwind.config.js"));
 
 export default function SearchScreen() {
   return (

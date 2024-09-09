@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { create } from "twrnc";
 import { User, Search, MessageCircle, UserCircle } from "lucide-react-native";
 
-const tw = create(require("../tailwind.config.js"));
+const tw = create(require("../../tailwind.config.js"));
 
 interface NavItemProps {
   name: string;

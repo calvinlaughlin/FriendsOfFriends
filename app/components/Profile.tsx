@@ -3,7 +3,7 @@ import { View, Text, Image } from "react-native";
 import { User } from "lucide-react-native";
 import { create } from "twrnc";
 
-const tw = create(require("../tailwind.config.js"));
+const tw = create(require("../../tailwind.config.js"));
 
 interface ProfileProps {
   name: string;

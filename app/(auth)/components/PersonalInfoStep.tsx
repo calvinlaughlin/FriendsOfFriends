@@ -3,7 +3,7 @@ import { View, Text, TextInput, Dimensions } from "react-native";
 import { create } from "twrnc";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
-const tw = create(require("../../tailwind.config.js"));
+const tw = create(require("../../../tailwind.config.js"));
 
 const screenWidth = Dimensions.get("window").width;
 

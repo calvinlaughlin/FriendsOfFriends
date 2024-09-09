@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { create } from "twrnc";
 import { Picker } from "@react-native-picker/picker";
 
-const tw = create(require("../../tailwind.config.js"));
+const tw = create(require("../../../tailwind.config.js"));
 
 interface GenderSelectionStepProps {
   gender: string;

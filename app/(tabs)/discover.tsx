@@ -17,7 +17,7 @@ import Profile from "../components/Profile";
 import LikeBar from "../components/LikeBar";
 import LoginScreen from "../(auth)/login";
 
-const tw = create(require("../tailwind.config.js"));
+const tw = create(require("../../tailwind.config.js"));
 
 interface UserData {
   _id: string;

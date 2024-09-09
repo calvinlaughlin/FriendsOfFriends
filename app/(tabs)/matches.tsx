@@ -2,7 +2,7 @@ import React from "react";
 import ChatScreen from "../components/ChatScreen";
 import { create } from "twrnc";
 
-const tw = create(require("../tailwind.config.js"));
+const tw = create(require("../../tailwind.config.js"));
 
 // Mock user data
 const mockUserData = {

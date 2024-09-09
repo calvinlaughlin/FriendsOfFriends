@@ -12,8 +12,8 @@ import {
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { create } from "twrnc";
 import Auth0 from "react-native-auth0";
+import { tailwind } from "../../tailwind";
 
 import ProgressBar from "./components/ProgressBar";
 import PhoneNumberStep from "./components/PhoneNumberStep";
@@ -21,8 +21,6 @@ import OtpVerificationStep from "./components/OtpVerificationStep";
 import PersonalInfoStep from "./components/PersonalInfoStep";
 import GenderSelectionStep from "./components/GenderSelectionStep";
 import ProfilePhotoStep from "./components/ProfilePhotoStep";
-
-const tw = create(require("../tailwind.config.js"));
 
 const auth0 = new Auth0({
   domain: "dev-t5rnx1ug8uns7sxt.us.auth0.com",
@@ -36,7 +34,7 @@ const steps = [
   "When's your birthday?",
   "What's your gender?",
   "What's your desired gender?",
-  "Add your profile photo",
+  "Add your photos",
 ];
 
 export default function SignUpScreen() {
@@ -48,6 +46,7 @@ export default function SignUpScreen() {
   const [gender, setGender] = useState("");
   const [desiredGender, setDesiredGender] = useState("");
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [additionalPhotos, setAdditionalPhotos] = useState<string[]>([]);
   const [bypassVerification, setBypassVerification] = useState(false);
   const router = useRouter();
 
@@ -121,6 +120,7 @@ export default function SignUpScreen() {
         gender,
         desiredGender,
         profilePhoto,
+        additionalPhotos,
       });
       router.replace("/(tabs)/discover");
     } else {
@@ -150,12 +150,20 @@ export default function SignUpScreen() {
     }
   };
 
-  const handleImageUpload = (uri: string) => {
-    setProfilePhoto(uri);
+  const handleImageUpload = (uri: string, isProfilePhoto: boolean) => {
+    if (isProfilePhoto) {
+      setProfilePhoto(uri);
+    } else {
+      setAdditionalPhotos((prev) => [...prev, uri].slice(0, 6));
+    }
   };
 
-  const handleDeletePhoto = () => {
-    setProfilePhoto(null);
+  const handleDeletePhoto = (index: number) => {
+    if (index === -1) {
+      setProfilePhoto(null);
+    } else {
+      setAdditionalPhotos((prev) => prev.filter((_, i) => i !== index));
+    }
   };
 
   const renderStep = () => {
@@ -202,6 +210,7 @@ export default function SignUpScreen() {
         return (
           <ProfilePhotoStep
             profilePhoto={profilePhoto}
+            additionalPhotos={additionalPhotos}
             onImageUpload={handleImageUpload}
             onDeletePhoto={handleDeletePhoto}
           />
@@ -215,22 +224,22 @@ export default function SignUpScreen() {
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="dark" />
-      <SafeAreaView style={tw`flex-1 bg-white`}>
+      <SafeAreaView style={tailwind`flex-1 bg-white`}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={tw`flex-1`}
+          style={tailwind`flex-1`}
         >
-          <ScrollView contentContainerStyle={tw`flex-grow`}>
-            <View style={tw`flex-1 p-4 justify-between`}>
+          <ScrollView contentContainerStyle={tailwind`flex-grow`}>
+            <View style={tailwind`flex-1 p-4 justify-between`}>
               <View>
                 <ProgressBar currentStep={step} totalSteps={steps.length} />
-                <Text style={tw`text-2xl font-bold mb-8`}>
+                <Text style={tailwind`text-2xl font-bold mb-8`}>
                   {steps[step - 1]}
                 </Text>
               </View>
               {step < 7 && (
-                <View style={tw`flex-row items-center justify-end mb-4`}>
-                  <Text style={tw`mr-2`}>Bypass Verification</Text>
+                <View style={tailwind`flex-row items-center justify-end mb-4`}>
+                  <Text style={tailwind`mr-2`}>Bypass Verification</Text>
                   <Switch
                     value={bypassVerification}
                     onValueChange={setBypassVerification}
@@ -238,16 +247,18 @@ export default function SignUpScreen() {
                 </View>
               )}
               {renderStep()}
-              <View style={tw`flex-row justify-between mt-4`}>
+              <View style={tailwind`flex-row justify-between mt-4`}>
                 <TouchableOpacity
                   onPress={handleBack}
-                  style={tw`bg-gray-200 rounded-md p-3`}
+                  style={tailwind`bg-gray-200 rounded-md p-3`}
                 >
-                  <Text style={tw`text-gray-800 font-semibold`}>Back</Text>
+                  <Text style={tailwind`text-gray-800 font-semibold`}>
+                    Back
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleNext}
-                  style={tw`bg-indigo-600 rounded-md p-3 ${
+                  style={tailwind`bg-indigo-600 rounded-md p-3 ${
                     (step === 1 && !isPhoneNumberValid()) ||
                     (step === 7 && !profilePhoto)
                       ? "opacity-50"
@@ -258,7 +269,7 @@ export default function SignUpScreen() {
                     (step === 7 && !profilePhoto)
                   }
                 >
-                  <Text style={tw`text-white font-semibold`}>
+                  <Text style={tailwind`text-white font-semibold`}>
                     {step === 7 ? "Create Account" : "Next"}
                   </Text>
                 </TouchableOpacity>

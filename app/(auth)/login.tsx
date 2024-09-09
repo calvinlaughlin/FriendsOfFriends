@@ -13,7 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { create } from "twrnc";
 
 // Create a new instance of tailwind
-const tw = create(require("../tailwind.config.js"));
+const tw = create(require("../../tailwind.config.js"));
 
 export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");

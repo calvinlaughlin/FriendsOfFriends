@@ -10,7 +10,7 @@ import {
 import { Search } from "lucide-react-native";
 import { create } from "twrnc";
 
-const tw = create(require("../tailwind.config.js"));
+const tw = create(require("../../tailwind.config.js"));
 
 interface UserData {
   _id: string;
