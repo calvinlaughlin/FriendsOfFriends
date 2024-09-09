@@ -5,8 +5,11 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "types": ["node", "react", "react-native", "prop-types"],
-    "typeRoots": ["./node_modules/@types", "./types"]
+    "types": ["react-native", "jest"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types"
+    ]
   },
   "include": [
     "**/*.ts",

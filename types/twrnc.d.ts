@@ -1,4 +1,7 @@
 declare module 'twrnc' {
-    const create: (config: any) => (classNames: string) => { [key: string]: any };
-    export { create };
-  }
+  export function create(config: any): {
+    (strings: TemplateStringsArray | string, ...values: any[]): any;
+    style: (strings: TemplateStringsArray | string, ...values: any[]) => any;
+    color: (color: string) => string;
+  };
+}
