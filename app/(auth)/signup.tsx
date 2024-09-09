@@ -24,6 +24,7 @@ import ProfilePhotoStep from "./components/ProfilePhotoStep";
 import ProfilePromptsStep from "./components/ProfilePromptsStep";
 import LocationStep from "./components/LocationStep";
 import CollegeStep from "./components/CollegeStep";
+import JobStep from "./components/JobStep";
 
 const auth0 = new Auth0({
   domain: "dev-t5rnx1ug8uns7sxt.us.auth0.com",
@@ -41,6 +42,7 @@ const steps = [
   "Add a profile prompt",
   "Where are you from?",
   "College you attend or attended",
+  "What do you do?",
 ];
 
 export default function SignUpScreen() {
@@ -59,6 +61,7 @@ export default function SignUpScreen() {
   const [isPromptStepComplete, setIsPromptStepComplete] = useState(false);
   const [location, setLocation] = useState("");
   const [college, setCollege] = useState<string | null>(null);
+  const [job, setJob] = useState("");
   const [bypassVerification, setBypassVerification] = useState(false);
   const router = useRouter();
 
@@ -138,9 +141,9 @@ export default function SignUpScreen() {
       } else {
         Alert.alert("Error", "Invalid OTP. Please try again.");
       }
-    } else if (step < 10) {
+    } else if (step < 11) {
       setStep(step + 1);
-    } else if (step === 10) {
+    } else if (step === 11) {
       // Final step: create account
       console.log("Account created:", {
         phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
@@ -153,6 +156,7 @@ export default function SignUpScreen() {
         promptAnswers,
         location,
         college,
+        job,
       });
       router.replace("/(tabs)/discover");
     }
@@ -264,6 +268,8 @@ export default function SignUpScreen() {
             onSkip={handleSkipCollege}
           />
         );
+      case 11:
+        return <JobStep job={job} onJobChange={setJob} />;
       default:
         return null;
     }
@@ -321,7 +327,7 @@ export default function SignUpScreen() {
                   }
                 >
                   <Text style={tailwind`text-white font-semibold`}>
-                    {step === 10 ? "Create Account" : "Next"}
+                    {step === 11 ? "Create Account" : "Next"}
                   </Text>
                 </TouchableOpacity>
               </View>
