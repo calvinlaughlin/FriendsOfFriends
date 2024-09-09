@@ -21,6 +21,7 @@ import OtpVerificationStep from "./components/OtpVerificationStep";
 import PersonalInfoStep from "./components/PersonalInfoStep";
 import GenderSelectionStep from "./components/GenderSelectionStep";
 import ProfilePhotoStep from "./components/ProfilePhotoStep";
+import ProfilePromptsStep from "./components/ProfilePromptsStep";
 
 const auth0 = new Auth0({
   domain: "dev-t5rnx1ug8uns7sxt.us.auth0.com",
@@ -35,6 +36,7 @@ const steps = [
   "What's your gender?",
   "What's your desired gender?",
   "Add your photos",
+  "Add a profile prompt",
 ];
 
 export default function SignUpScreen() {
@@ -47,6 +49,10 @@ export default function SignUpScreen() {
   const [desiredGender, setDesiredGender] = useState("");
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [additionalPhotos, setAdditionalPhotos] = useState<string[]>([]);
+  const [promptAnswers, setPromptAnswers] = useState<{ [key: string]: string }>(
+    {}
+  );
+  const [isPromptStepComplete, setIsPromptStepComplete] = useState(false);
   const [bypassVerification, setBypassVerification] = useState(false);
   const router = useRouter();
 
@@ -73,6 +79,14 @@ export default function SignUpScreen() {
   const isPhoneNumberValid = () => {
     const cleaned = phoneNumber.replace(/\D/g, "");
     return cleaned.length === 10;
+  };
+
+  const handlePromptAnswer = (prompt: string, answer: string) => {
+    setPromptAnswers((prev) => ({ ...prev, [prompt]: answer }));
+  };
+
+  const handlePromptStepComplete = () => {
+    setIsPromptStepComplete(true);
   };
 
   const handleNext = async () => {
@@ -109,9 +123,9 @@ export default function SignUpScreen() {
       } else {
         Alert.alert("Error", "Invalid OTP. Please try again.");
       }
-    } else if (step < 7) {
+    } else if (step < 8) {
       setStep(step + 1);
-    } else if (step === 7 && profilePhoto) {
+    } else if (step === 8 && isPromptStepComplete) {
       // Final step: create account
       console.log("Account created:", {
         phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
@@ -121,10 +135,14 @@ export default function SignUpScreen() {
         desiredGender,
         profilePhoto,
         additionalPhotos,
+        promptAnswers,
       });
       router.replace("/(tabs)/discover");
     } else {
-      Alert.alert("Error", "Please upload a profile photo before proceeding.");
+      Alert.alert(
+        "Error",
+        "Please answer at least one profile prompt before proceeding."
+      );
     }
   };
 
@@ -215,6 +233,13 @@ export default function SignUpScreen() {
             onDeletePhoto={handleDeletePhoto}
           />
         );
+      case 8:
+        return (
+          <ProfilePromptsStep
+            onPromptAnswer={handlePromptAnswer}
+            onComplete={handlePromptStepComplete}
+          />
+        );
       default:
         return null;
     }
@@ -260,17 +285,17 @@ export default function SignUpScreen() {
                   onPress={handleNext}
                   style={tailwind`bg-indigo-600 rounded-md p-3 ${
                     (step === 1 && !isPhoneNumberValid()) ||
-                    (step === 7 && !profilePhoto)
+                    (step === 8 && !isPromptStepComplete)
                       ? "opacity-50"
                       : ""
                   }`}
                   disabled={
                     (step === 1 && !isPhoneNumberValid()) ||
-                    (step === 7 && !profilePhoto)
+                    (step === 8 && !isPromptStepComplete)
                   }
                 >
                   <Text style={tailwind`text-white font-semibold`}>
-                    {step === 7 ? "Create Account" : "Next"}
+                    {step === 8 ? "Create Account" : "Next"}
                   </Text>
                 </TouchableOpacity>
               </View>
