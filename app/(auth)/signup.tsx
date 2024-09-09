@@ -25,6 +25,8 @@ import ProfilePromptsStep from "./components/ProfilePromptsStep";
 import LocationStep from "./components/LocationStep";
 import CollegeStep from "./components/CollegeStep";
 import JobStep from "./components/JobStep";
+import NetworkSetupStep from "./components/NetworkSetupStep";
+import ClosestContactsStep from "./components/ClosestContactsStep";
 
 const auth0 = new Auth0({
   domain: "dev-t5rnx1ug8uns7sxt.us.auth0.com",
@@ -43,6 +45,8 @@ const steps = [
   "Where are you from?",
   "College you attend or attended",
   "What do you do?",
+  "Set up your network",
+  "Choose your closest contacts",
 ];
 
 export default function SignUpScreen() {
@@ -141,9 +145,9 @@ export default function SignUpScreen() {
       } else {
         Alert.alert("Error", "Invalid OTP. Please try again.");
       }
-    } else if (step < 11) {
+    } else if (step < 13) {
       setStep(step + 1);
-    } else if (step === 11) {
+    } else if (step === 13) {
       // Final step: create account
       console.log("Account created:", {
         phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
@@ -270,6 +274,15 @@ export default function SignUpScreen() {
         );
       case 11:
         return <JobStep job={job} onJobChange={setJob} />;
+      case 12:
+        return (
+          <NetworkSetupStep
+            profilePhoto={profilePhoto}
+            onContinue={handleNext}
+          />
+        );
+      case 13:
+        return <ClosestContactsStep onComplete={handleNext} />;
       default:
         return null;
     }
@@ -278,63 +291,67 @@ export default function SignUpScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar style="dark" />
-      <SafeAreaView style={tailwind`flex-1 bg-white`}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={tailwind`flex-1`}
-        >
-          <ScrollView contentContainerStyle={tailwind`flex-grow`}>
-            <View style={tailwind`flex-1 p-4 justify-between`}>
-              <View>
-                <ProgressBar currentStep={step} totalSteps={steps.length} />
-                <Text style={tailwind`text-2xl font-bold mb-8`}>
-                  {steps[step - 1]}
-                </Text>
-              </View>
-              {step < 7 && (
-                <View style={tailwind`flex-row items-center justify-end mb-4`}>
-                  <Text style={tailwind`mr-2`}>Bypass Verification</Text>
-                  <Switch
-                    value={bypassVerification}
-                    onValueChange={setBypassVerification}
-                  />
+      <StatusBar style={step >= 12 ? "light" : "dark"} />
+      {step >= 12 ? (
+        renderStep()
+      ) : (
+        <SafeAreaView style={tailwind`flex-1 bg-white`}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={tailwind`flex-1`}
+          >
+            <ScrollView contentContainerStyle={tailwind`flex-grow`}>
+              <View style={tailwind`flex-1 p-4 justify-between`}>
+                <View>
+                  <ProgressBar currentStep={step} totalSteps={steps.length} />
+                  <Text style={tailwind`text-2xl font-bold mb-8`}>
+                    {steps[step - 1]}
+                  </Text>
                 </View>
-              )}
-              {renderStep()}
-              <View style={tailwind`flex-row justify-between mt-4`}>
-                <TouchableOpacity
-                  onPress={handleBack}
-                  style={tailwind`bg-gray-200 rounded-md p-3`}
-                >
-                  <Text style={tailwind`text-gray-800 font-semibold`}>
-                    Back
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleNext}
-                  style={tailwind`bg-indigo-600 rounded-md p-3 ${
-                    (step === 1 && !isPhoneNumberValid()) ||
-                    (step === 8 && !isPromptStepComplete) ||
-                    (step === 9 && !location.trim())
-                      ? "opacity-50"
-                      : ""
-                  }`}
-                  disabled={
-                    (step === 1 && !isPhoneNumberValid()) ||
-                    (step === 8 && !isPromptStepComplete) ||
-                    (step === 9 && !location.trim())
-                  }
-                >
-                  <Text style={tailwind`text-white font-semibold`}>
-                    {step === 11 ? "Create Account" : "Next"}
-                  </Text>
-                </TouchableOpacity>
+                {step < 7 && (
+                  <View
+                    style={tailwind`flex-row items-center justify-end mb-4`}
+                  >
+                    <Text style={tailwind`mr-2`}>Bypass Verification</Text>
+                    <Switch
+                      value={bypassVerification}
+                      onValueChange={setBypassVerification}
+                    />
+                  </View>
+                )}
+                {renderStep()}
+                <View style={tailwind`flex-row justify-between mt-4`}>
+                  <TouchableOpacity
+                    onPress={handleBack}
+                    style={tailwind`bg-gray-200 rounded-md p-3`}
+                  >
+                    <Text style={tailwind`text-gray-800 font-semibold`}>
+                      Back
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleNext}
+                    style={tailwind`bg-indigo-600 rounded-md p-3 ${
+                      (step === 1 && !isPhoneNumberValid()) ||
+                      (step === 8 && !isPromptStepComplete) ||
+                      (step === 9 && !location.trim())
+                        ? "opacity-50"
+                        : ""
+                    }`}
+                    disabled={
+                      (step === 1 && !isPhoneNumberValid()) ||
+                      (step === 8 && !isPromptStepComplete) ||
+                      (step === 9 && !location.trim())
+                    }
+                  >
+                    <Text style={tailwind`text-white font-semibold`}>Next</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      )}
     </>
   );
 }
