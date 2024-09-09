@@ -23,6 +23,7 @@ import GenderSelectionStep from "./components/GenderSelectionStep";
 import ProfilePhotoStep from "./components/ProfilePhotoStep";
 import ProfilePromptsStep from "./components/ProfilePromptsStep";
 import LocationStep from "./components/LocationStep";
+import CollegeStep from "./components/CollegeStep";
 
 const auth0 = new Auth0({
   domain: "dev-t5rnx1ug8uns7sxt.us.auth0.com",
@@ -39,6 +40,7 @@ const steps = [
   "Add your photos",
   "Add a profile prompt",
   "Where are you from?",
+  "College you attend or attended",
 ];
 
 export default function SignUpScreen() {
@@ -56,6 +58,7 @@ export default function SignUpScreen() {
   );
   const [isPromptStepComplete, setIsPromptStepComplete] = useState(false);
   const [location, setLocation] = useState("");
+  const [college, setCollege] = useState<string | null>(null);
   const [bypassVerification, setBypassVerification] = useState(false);
   const router = useRouter();
 
@@ -92,6 +95,15 @@ export default function SignUpScreen() {
     setIsPromptStepComplete(true);
   };
 
+  const handleSkipCollege = () => {
+    setCollege(null);
+    handleNext();
+  };
+
+  const handleCollegeChange = (value: string | null) => {
+    setCollege(value);
+  };
+
   const handleNext = async () => {
     if (step === 1 && isPhoneNumberValid()) {
       if (bypassVerification) {
@@ -126,9 +138,9 @@ export default function SignUpScreen() {
       } else {
         Alert.alert("Error", "Invalid OTP. Please try again.");
       }
-    } else if (step < 9) {
+    } else if (step < 10) {
       setStep(step + 1);
-    } else if (step === 9 && location.trim()) {
+    } else if (step === 10) {
       // Final step: create account
       console.log("Account created:", {
         phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
@@ -140,10 +152,9 @@ export default function SignUpScreen() {
         additionalPhotos,
         promptAnswers,
         location,
+        college,
       });
       router.replace("/(tabs)/discover");
-    } else {
-      Alert.alert("Error", "Please enter your location before proceeding.");
     }
   };
 
@@ -245,6 +256,14 @@ export default function SignUpScreen() {
         return (
           <LocationStep location={location} onLocationChange={setLocation} />
         );
+      case 10:
+        return (
+          <CollegeStep
+            college={college}
+            onCollegeChange={handleCollegeChange}
+            onSkip={handleSkipCollege}
+          />
+        );
       default:
         return null;
     }
@@ -302,7 +321,7 @@ export default function SignUpScreen() {
                   }
                 >
                   <Text style={tailwind`text-white font-semibold`}>
-                    {step === 9 ? "Create Account" : "Next"}
+                    {step === 10 ? "Create Account" : "Next"}
                   </Text>
                 </TouchableOpacity>
               </View>
