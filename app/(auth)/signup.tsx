@@ -22,6 +22,7 @@ import PersonalInfoStep from "./components/PersonalInfoStep";
 import GenderSelectionStep from "./components/GenderSelectionStep";
 import ProfilePhotoStep from "./components/ProfilePhotoStep";
 import ProfilePromptsStep from "./components/ProfilePromptsStep";
+import LocationStep from "./components/LocationStep";
 
 const auth0 = new Auth0({
   domain: "dev-t5rnx1ug8uns7sxt.us.auth0.com",
@@ -37,6 +38,7 @@ const steps = [
   "What's your desired gender?",
   "Add your photos",
   "Add a profile prompt",
+  "Where are you from?",
 ];
 
 export default function SignUpScreen() {
@@ -53,6 +55,7 @@ export default function SignUpScreen() {
     {}
   );
   const [isPromptStepComplete, setIsPromptStepComplete] = useState(false);
+  const [location, setLocation] = useState("");
   const [bypassVerification, setBypassVerification] = useState(false);
   const router = useRouter();
 
@@ -123,9 +126,9 @@ export default function SignUpScreen() {
       } else {
         Alert.alert("Error", "Invalid OTP. Please try again.");
       }
-    } else if (step < 8) {
+    } else if (step < 9) {
       setStep(step + 1);
-    } else if (step === 8 && isPromptStepComplete) {
+    } else if (step === 9 && location.trim()) {
       // Final step: create account
       console.log("Account created:", {
         phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
@@ -136,13 +139,11 @@ export default function SignUpScreen() {
         profilePhoto,
         additionalPhotos,
         promptAnswers,
+        location,
       });
       router.replace("/(tabs)/discover");
     } else {
-      Alert.alert(
-        "Error",
-        "Please answer at least one profile prompt before proceeding."
-      );
+      Alert.alert("Error", "Please enter your location before proceeding.");
     }
   };
 
@@ -240,6 +241,10 @@ export default function SignUpScreen() {
             onComplete={handlePromptStepComplete}
           />
         );
+      case 9:
+        return (
+          <LocationStep location={location} onLocationChange={setLocation} />
+        );
       default:
         return null;
     }
@@ -285,17 +290,19 @@ export default function SignUpScreen() {
                   onPress={handleNext}
                   style={tailwind`bg-indigo-600 rounded-md p-3 ${
                     (step === 1 && !isPhoneNumberValid()) ||
-                    (step === 8 && !isPromptStepComplete)
+                    (step === 8 && !isPromptStepComplete) ||
+                    (step === 9 && !location.trim())
                       ? "opacity-50"
                       : ""
                   }`}
                   disabled={
                     (step === 1 && !isPhoneNumberValid()) ||
-                    (step === 8 && !isPromptStepComplete)
+                    (step === 8 && !isPromptStepComplete) ||
+                    (step === 9 && !location.trim())
                   }
                 >
                   <Text style={tailwind`text-white font-semibold`}>
-                    {step === 8 ? "Create Account" : "Next"}
+                    {step === 9 ? "Create Account" : "Next"}
                   </Text>
                 </TouchableOpacity>
               </View>
