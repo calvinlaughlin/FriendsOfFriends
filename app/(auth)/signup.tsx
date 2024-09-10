@@ -115,7 +115,7 @@ export default function SignUpScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    // This effect can be used for any side effects that need to happen when the step changes
+    console.log("Current step:", step);
   }, [step]);
 
   function getEighteenYearsAgo() {
@@ -163,7 +163,70 @@ export default function SignUpScreen() {
     setCollege(value);
   }, []);
 
+  const handleFinalStep = useCallback(async () => {
+    console.log("Handling final step");
+    const accountData = {
+      phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
+      firstName,
+      birthday: birthday.toISOString(),
+      gender,
+      desiredGender,
+      profilePhoto: profilePhoto || "",
+      additionalPhotos,
+      promptAnswers,
+      location,
+      college,
+      job,
+      closestContacts: closestContacts.map((contact) => ({
+        name: contact.name,
+        phoneNumber: contact.phoneNumber,
+      })),
+      excludedContacts: excludedContacts.map((contact) => ({
+        name: contact.name,
+        phoneNumber: contact.phoneNumber,
+      })),
+    };
+
+    try {
+      const createdUser = await createUserInBackend(accountData);
+      console.log("User created in backend");
+
+      if (createdUser && createdUser._id) {
+        console.log("Storing user ID in local storage:", createdUser._id);
+        await storeUserId(createdUser._id);
+        console.log("User ID stored successfully");
+
+        console.log("Navigating to discover screen");
+        router.push({
+          pathname: "/discover",
+          params: { newUser: JSON.stringify(createdUser) },
+        });
+      } else {
+        throw new Error("Created user does not have an _id property");
+      }
+    } catch (error) {
+      console.error("Failed to create user in backend:", error);
+      Alert.alert("Error", "Failed to create your account. Please try again.");
+    }
+  }, [
+    phoneNumber,
+    firstName,
+    birthday,
+    gender,
+    desiredGender,
+    profilePhoto,
+    additionalPhotos,
+    promptAnswers,
+    location,
+    college,
+    job,
+    closestContacts,
+    excludedContacts,
+    router,
+  ]);
+
   const handleNext = useCallback(async () => {
+    console.log("Handling next step. Current step:", step);
     if (step === 1 && isPhoneNumberValid()) {
       if (bypassVerification) {
         setStep(3);
@@ -196,56 +259,11 @@ export default function SignUpScreen() {
         }
       }
     } else if (step < 14) {
-      console.log(step);
       setStep((prevStep) => prevStep + 1);
     } else if (step === 14) {
-      console.log("Attempting to create user in backend");
-      const accountData = {
-        phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
-        firstName,
-        birthday: birthday.toISOString(),
-        gender,
-        desiredGender,
-        profilePhoto: profilePhoto || "",
-        additionalPhotos,
-        promptAnswers,
-        location,
-        college,
-        job,
-        closestContacts: closestContacts.map((contact) => ({
-          name: contact.name,
-          phoneNumber: contact.phoneNumber,
-        })),
-        excludedContacts: excludedContacts.map((contact) => ({
-          name: contact.name,
-          phoneNumber: contact.phoneNumber,
-        })),
-      };
-
-      try {
-        const createdUser = await createUserInBackend(accountData);
-        console.log("User created in backend");
-
-        if (createdUser && createdUser._id) {
-          console.log("Storing user ID in local storage:", createdUser._id);
-          await storeUserId(createdUser._id);
-          console.log("User ID stored successfully");
-
-          console.log("Navigating to discover screen");
-          router.push({
-            pathname: "/discover",
-            params: { newUser: JSON.stringify(createdUser) },
-          });
-        } else {
-          throw new Error("Created user does not have an _id property");
-        }
-      } catch (error) {
-        console.error("Failed to create user in backend:", error);
-        Alert.alert(
-          "Error",
-          "Failed to create your account. Please try again."
-        );
-      }
+      setStep(15);
+    } else if (step === 15) {
+      await handleFinalStep();
     }
   }, [
     step,
@@ -253,19 +271,7 @@ export default function SignUpScreen() {
     otp,
     isPhoneNumberValid,
     bypassVerification,
-    firstName,
-    birthday,
-    gender,
-    desiredGender,
-    profilePhoto,
-    additionalPhotos,
-    promptAnswers,
-    location,
-    college,
-    job,
-    closestContacts,
-    excludedContacts,
-    router,
+    handleFinalStep,
   ]);
 
   const handleClosestContactsComplete = useCallback(
@@ -425,28 +431,32 @@ export default function SignUpScreen() {
           />
         );
       case 15:
-        const userData = {
-          phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
-          firstName,
-          birthday: birthday.toISOString(),
-          gender,
-          desiredGender,
-          profilePhoto: profilePhoto || "",
-          additionalPhotos,
-          promptAnswers,
-          location,
-          college,
-          job,
-          closestContacts: closestContacts.map((contact) => ({
-            name: contact.name,
-            phoneNumber: contact.phoneNumber,
-          })),
-          excludedContacts: excludedContacts.map((contact) => ({
-            name: contact.name,
-            phoneNumber: contact.phoneNumber,
-          })),
-        };
-        return <CongratsScreen userData={userData} />;
+        return (
+          <CongratsScreen
+            userData={{
+              phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
+              firstName,
+              birthday: birthday.toISOString(),
+              gender,
+              desiredGender,
+              profilePhoto: profilePhoto || "",
+              additionalPhotos,
+              promptAnswers,
+              location,
+              college,
+              job,
+              closestContacts: closestContacts.map((contact) => ({
+                name: contact.name,
+                phoneNumber: contact.phoneNumber,
+              })),
+              excludedContacts: excludedContacts.map((contact) => ({
+                name: contact.name,
+                phoneNumber: contact.phoneNumber,
+              })),
+            }}
+            onComplete={handleNext}
+          />
+        );
       default:
         return <Text>Unknown step</Text>;
     }
@@ -464,6 +474,7 @@ export default function SignUpScreen() {
     college,
     job,
     closestContacts,
+    excludedContacts,
     bypassVerification,
     handlePhoneNumberChange,
     handleBirthdayChange,
