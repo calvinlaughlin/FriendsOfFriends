@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import { History, Menu, LogOut } from "lucide-react-native";
 import { create } from "twrnc";
-import axios from "axios";
-import Profile from "../components/Profile";
+import axios, { AxiosError } from "axios";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import Profile, { ProfileProps } from "../components/Profile";
 import LikeBar from "../components/LikeBar";
 import LoginScreen from "../(auth)/login";
 
@@ -37,6 +38,17 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter();
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    if (params.newUser) {
+      const newUserData = JSON.parse(params.newUser as string);
+      console.log("New user data:", newUserData);
+      setUserData(newUserData);
+      setIsLoggedIn(true);
+    }
+  }, [params.newUser]);
 
   useEffect(() => {
     if (isLoggedIn && userData?._id) {
@@ -50,7 +62,7 @@ export default function HomeScreen() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(
+      const response = await axios.get<UserData>(
         `http://localhost:5001/api/user/${userData._id}`
       );
       setUserData(response.data);
@@ -60,11 +72,12 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Error fetching user data:", error);
       if (axios.isAxiosError(error)) {
-        if (error.response) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response) {
           setError(
-            `Unable to fetch your data. Please try again later. (Error: ${error.response.status})`
+            `Unable to fetch your data. Please try again later. (Error: ${axiosError.response.status})`
           );
-        } else if (error.request) {
+        } else if (axiosError.request) {
           setError(
             "We're having trouble connecting to our servers. Please check your internet connection and try again."
           );
@@ -74,7 +87,11 @@ export default function HomeScreen() {
       } else {
         setError("An unexpected error occurred. Please try again.");
       }
-      Alert.alert("Oops!", error.toString(), [{ text: "OK" }]);
+      Alert.alert(
+        "Oops!",
+        error instanceof Error ? error.message : String(error),
+        [{ text: "OK" }]
+      );
     } finally {
       setLoading(false);
     }
@@ -84,9 +101,12 @@ export default function HomeScreen() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post("http://localhost:5001/api/login", {
-        phoneNumber,
-      });
+      const response = await axios.post<UserData>(
+        "http://localhost:5001/api/login",
+        {
+          phoneNumber,
+        }
+      );
 
       if (response.data && response.data._id) {
         setIsLoggedIn(true);
@@ -106,11 +126,7 @@ export default function HomeScreen() {
   };
 
   const handleCreateAccount = () => {
-    console.log("Navigating to account creation");
-    Alert.alert(
-      "Create Account",
-      "We're excited to have you join! Account creation will be available soon."
-    );
+    router.push("/(auth)/signup");
   };
 
   const handleLogout = () => {
@@ -182,6 +198,14 @@ export default function HomeScreen() {
       );
     }
 
+    const profileProps: ProfileProps = {
+      name: currentMatch.name,
+      age: currentMatch.age,
+      location: currentMatch.location,
+      profilePhoto: currentMatch.profilePhoto,
+      school: currentMatch.school,
+    };
+
     return (
       <ScrollView style={tw`flex-1`}>
         <View style={tw`flex-row justify-between items-center p-4`}>
@@ -199,13 +223,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Profile
-          name={currentMatch.name}
-          age={currentMatch.age}
-          location={currentMatch.location}
-          profilePhoto={currentMatch.profilePhoto}
-          school={currentMatch.school}
-        />
+        <Profile {...profileProps} />
 
         <LikeBar
           onDislike={nextMatch}

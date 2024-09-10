@@ -1,13 +1,27 @@
 import React from "react";
 import { View, Text, TouchableOpacity, SafeAreaView } from "react-native";
+import { useRouter } from "expo-router";
 import { tailwind } from "../../../tailwind";
 import { Image } from "lucide-react-native";
 
 interface CongratsScreenProps {
-  onContinue: () => void;
+  userData: any; // Replace 'any' with your actual user data type
 }
 
-export default function CongratsScreen({ onContinue }: CongratsScreenProps) {
+export default function CongratsScreen({ userData }: CongratsScreenProps) {
+  const router = useRouter();
+
+  const handleContinue = () => {
+    console.log(
+      "Accumulated user information:",
+      JSON.stringify(userData, null, 2)
+    );
+    router.replace({
+      pathname: "/(tabs)/discover",
+      params: { newUser: JSON.stringify(userData) },
+    });
+  };
+
   return (
     <SafeAreaView style={tailwind`flex-1 bg-indigo-600`}>
       <View style={tailwind`flex-1 justify-between p-6`}>
@@ -21,11 +35,12 @@ export default function CongratsScreen({ onContinue }: CongratsScreenProps) {
             Congrats!
           </Text>
           <Text style={tailwind`text-lg text-white text-center`}>
-            Thank you for joining our app!
+            Your account has been created successfully. You're all set to start
+            connecting with friends of friends!
           </Text>
         </View>
         <TouchableOpacity
-          onPress={onContinue}
+          onPress={handleContinue}
           style={tailwind`bg-white rounded-full py-4 px-8`}
         >
           <Text

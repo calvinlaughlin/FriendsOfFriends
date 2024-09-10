@@ -27,6 +27,7 @@ import CollegeStep from "./components/CollegeStep";
 import JobStep from "./components/JobStep";
 import NetworkSetupStep from "./components/NetworkSetupStep";
 import ClosestContactsStep from "./components/ClosestContactsStep";
+import ExcludedContactsStep from "./components/ExcludedContactsStep";
 import CongratsScreen from "./components/CongratsScreen";
 
 const auth0 = new Auth0({
@@ -48,6 +49,7 @@ const steps = [
   "What do you do?",
   "Set up your network",
   "Choose your closest contacts",
+  "Exclude contacts",
   "Congratulations!",
 ];
 
@@ -75,6 +77,7 @@ export default function SignUpScreen() {
   const [college, setCollege] = useState<string | null>(null);
   const [job, setJob] = useState("");
   const [closestContacts, setClosestContacts] = useState<Contact[]>([]);
+  const [excludedContacts, setExcludedContacts] = useState<Contact[]>([]);
   const [bypassVerification, setBypassVerification] = useState(false);
   const router = useRouter();
 
@@ -130,8 +133,23 @@ export default function SignUpScreen() {
 
   const handleClosestContactsComplete = useCallback(
     (selectedContacts: Contact[]) => {
-      console.log("Received contacts in SignUpScreen:", selectedContacts);
+      console.log(
+        "Received closest contacts in SignUpScreen:",
+        selectedContacts
+      );
       setClosestContacts(selectedContacts);
+      handleNext();
+    },
+    []
+  );
+
+  const handleExcludedContactsComplete = useCallback(
+    (selectedContacts: Contact[]) => {
+      console.log(
+        "Received excluded contacts in SignUpScreen:",
+        selectedContacts
+      );
+      setExcludedContacts(selectedContacts);
       handleNext();
     },
     []
@@ -172,9 +190,9 @@ export default function SignUpScreen() {
       } else {
         Alert.alert("Error", "Invalid OTP. Please try again.");
       }
-    } else if (step < 14) {
+    } else if (step < 15) {
       setStep((prevStep) => prevStep + 1);
-    } else if (step === 14) {
+    } else if (step === 15) {
       // Final step: create account
       const accountData = {
         phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
@@ -192,9 +210,13 @@ export default function SignUpScreen() {
           name: contact.name,
           phoneNumber: contact.phoneNumber,
         })),
+        excludedContacts: excludedContacts.map((contact) => ({
+          name: contact.name,
+          phoneNumber: contact.phoneNumber,
+        })),
       };
       console.log("Account created:", accountData);
-      router.replace("/(tabs)/discover");
+      // The navigation to the discover tab is now handled in the CongratsScreen component
     }
   }, [
     step,
@@ -211,9 +233,9 @@ export default function SignUpScreen() {
     college,
     job,
     closestContacts,
+    excludedContacts,
     bypassVerification,
     isPhoneNumberValid,
-    router,
   ]);
 
   const handleBack = useCallback(() => {
@@ -343,7 +365,35 @@ export default function SignUpScreen() {
           <ClosestContactsStep onComplete={handleClosestContactsComplete} />
         );
       case 14:
-        return <CongratsScreen onContinue={handleNext} />;
+        return (
+          <ExcludedContactsStep
+            onComplete={handleExcludedContactsComplete}
+            closestContacts={closestContacts}
+          />
+        );
+      case 15:
+        const userData = {
+          phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
+          firstName,
+          birthday,
+          gender,
+          desiredGender,
+          profilePhoto,
+          additionalPhotos,
+          promptAnswers,
+          location,
+          college,
+          job,
+          closestContacts: closestContacts.map((contact) => ({
+            name: contact.name,
+            phoneNumber: contact.phoneNumber,
+          })),
+          excludedContacts: excludedContacts.map((contact) => ({
+            name: contact.name,
+            phoneNumber: contact.phoneNumber,
+          })),
+        };
+        return <CongratsScreen userData={userData} />;
       default:
         return <Text>Unknown step</Text>;
     }
@@ -360,6 +410,7 @@ export default function SignUpScreen() {
     location,
     college,
     job,
+    closestContacts,
     bypassVerification,
     handlePhoneNumberChange,
     handleBirthdayChange,
@@ -370,6 +421,7 @@ export default function SignUpScreen() {
     handleCollegeChange,
     handleSkipCollege,
     handleClosestContactsComplete,
+    handleExcludedContactsComplete,
     handleNext,
   ]);
 
