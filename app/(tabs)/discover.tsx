@@ -9,120 +9,119 @@ import {
   Platform,
   StatusBar,
   Alert,
+  Image,
+  Dimensions,
 } from "react-native";
-import { History, Menu } from "lucide-react-native";
+import {
+  History,
+  Menu,
+  MapPin,
+  Briefcase,
+  GraduationCap,
+  Heart,
+  X,
+} from "lucide-react-native";
 import { create } from "twrnc";
-import axios, { AxiosError } from "axios";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import Profile, { ProfileProps } from "../components/Profile";
-import LikeBar from "../components/LikeBar";
-import { getUserId, storeUserId } from "../../backend/userStorage";
+import axios from "axios";
+import { getUserId } from "../../backend/userStorage";
 
 const tw = create(require("../../tailwind.config.js"));
 
 interface UserData {
   _id: string;
-  name: string;
+  firstName: string;
+  age: number;
   location: string;
   profilePhoto: string;
-  age: number;
-  sex: string;
-  preference: string;
-  school: string;
-  matches: UserData[];
+  college: string;
+  job: string;
+  promptAnswers: Record<string, string>;
+  additionalPhotos: string[];
+  mutualConnections: number;
 }
 
-// Dummy data for visualization
-const dummyMatches: UserData[] = [
-  {
-    _id: "1",
-    name: "Alice",
-    location: "New York, NY",
-    profilePhoto:
-      "https://st3.depositphotos.com/9998432/13335/v/380/depositphotos_133351974-stock-illustration-default-placeholder-woman.jpg",
-    age: 25,
-    sex: "Female",
-    preference: "Male",
-    school: "NYU",
-    matches: [],
-  },
-  {
-    _id: "2",
-    name: "Bob",
-    location: "Los Angeles, CA",
-    profilePhoto:
-      "https://media.istockphoto.com/id/1130424979/vector/person-gray-photo-placeholder-man.jpg?s=612x612&w=0&k=20&c=Oc5r-nuA8FxnBBFSa6azLq5bWDyPZlKNu-8qFrUDy5I=",
-    age: 28,
-    sex: "Male",
-    preference: "Female",
-    school: "UCLA",
-    matches: [],
-  },
-  {
-    _id: "3",
-    name: "Charlie",
-    location: "Chicago, IL",
-    profilePhoto:
-      "https://iidamidamerica.org/wp-content/uploads/2020/12/male-placeholder-image.jpeg",
-    age: 23,
-    sex: "Male",
-    preference: "Female",
-    school: "University of Chicago",
-    matches: [],
-  },
-];
+const useViewportHeight = () => {
+  const [viewportHeight, setViewportHeight] = useState(0);
 
-export default function DiscoverScreen() {
+  useEffect(() => {
+    const { height } = Dimensions.get("window");
+    const tabBarHeight = 148; // Approximate height of the tab bar
+    const headerHeight = 60; // Approximate height of the "Hi [username]!" header
+    const buttonAreaHeight = 80; // Height for like/dislike buttons
+    setViewportHeight(height - tabBarHeight - headerHeight - buttonAreaHeight);
+  }, []);
+
+  return viewportHeight;
+};
+
+export default function Component() {
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [currentMatch, setCurrentMatch] = useState<UserData | null>(null);
+  const [loggedInUserName, setLoggedInUserName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const params = useLocalSearchParams();
+  const viewportHeight = useViewportHeight();
 
   useEffect(() => {
     const initializeUser = async () => {
       if (params.newUser) {
         const newUserData = JSON.parse(params.newUser as string);
-        console.log("New user data:", newUserData);
-        await storeUserId(newUserData._id);
-        setUserData({ ...newUserData, matches: dummyMatches });
-        setCurrentMatch(dummyMatches[0]);
+        setUserData(newUserData);
         setLoading(false);
       } else {
         fetchUserData();
       }
     };
 
+    const fetchLoggedInUserName = async () => {
+      try {
+        const userId = await getUserId();
+        if (!userId) {
+          throw new Error("No user ID found. Please log in again.");
+        }
+        const response = await axios.get(
+          `http://localhost:5001/api/user/${userId}`
+        );
+        setLoggedInUserName(response.data.firstName);
+      } catch (error) {
+        console.error("Error fetching logged-in user data:", error);
+        setError("Failed to fetch user data. Please try again.");
+      }
+    };
+
     initializeUser();
+    fetchLoggedInUserName();
   }, [params.newUser]);
 
   const fetchUserData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const userId = await getUserId();
-      if (!userId) {
-        router.replace("/(auth)/login");
-        return;
-      }
-
       // Simulating API call with dummy data
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const dummyUserData: UserData = {
-        _id: userId,
-        name: "Calvin",
-        location: "San Francisco, CA",
+        _id: "66e0c8142948e18efc2b6a4a",
+        firstName: "Victoria",
+        age: 23,
+        location: "Los Angeles",
         profilePhoto:
-          "https://st3.depositphotos.com/9998432/13335/v/380/depositphotos_133351974-stock-illustration-default-placeholder-woman.jpg",
-        age: 30,
-        sex: "Male",
-        preference: "Female",
-        school: "Stanford",
-        matches: dummyMatches,
+          "https://media.istockphoto.com/id/1317323736/photo/a-view-up-into-the-trees-direction-sky.webp?b=1&s=612x612&w=0&k=20&c=8xbZvMyptEaqMW46diKakhVgkPkAzBi5l7J1yveCZFk=",
+        college: "Stanford University",
+        job: "Technology Entrepreneur",
+        promptAnswers: {
+          "Unusual skills":
+            "I can paint a watermelon with my right foot and I know a ridiculous amount of good Korean movies",
+        },
+        additionalPhotos: [
+          "https://www.stockvault.net/data/2007/03/01/99589/thumb16.jpg",
+          "https://st2.depositphotos.com/3651191/7410/i/450/depositphotos_74106203-stock-photo-blossom-carpet-of-pink-rhododendron.jpg",
+          "https://media.istockphoto.com/id/154232673/photo/blue-ridge-parkway-scenic-landscape-appalachian-mountains-ridges-sunset-layers.jpg?s=612x612&w=0&k=20&c=m2LZsnuJl6Un7oW4pHBH7s6Yr9-yB6pLkZ-8_vTj2M0=",
+        ],
+        mutualConnections: 11,
       };
       setUserData(dummyUserData);
-      setCurrentMatch(dummyMatches[0]);
     } catch (error) {
       console.error("Error fetching user data:", error);
       setError("An unexpected error occurred. Please try again.");
@@ -136,31 +135,11 @@ export default function DiscoverScreen() {
     }
   };
 
-  const nextMatch = () => {
-    if (userData && userData.matches) {
-      const currentIndex = userData.matches.findIndex(
-        (match) => match._id === currentMatch?._id
-      );
-      const nextIndex = (currentIndex + 1) % userData.matches.length;
-      setCurrentMatch(userData.matches[nextIndex]);
-    }
-  };
-
-  const handleLike = () => {
-    console.log("Liked");
-    nextMatch();
-  };
-
-  const handleSuperLike = () => {
-    console.log("Super Liked");
-    nextMatch();
-  };
-
   if (loading) {
     return (
       <View style={tw`flex-1 justify-center items-center`}>
         <ActivityIndicator size="large" color="#4B0082" />
-        <Text style={tw`mt-4 text-lg`}>Loading your perfect matches...</Text>
+        <Text style={tw`mt-4 text-lg`}>Loading profile...</Text>
       </View>
     );
   }
@@ -179,23 +158,15 @@ export default function DiscoverScreen() {
     );
   }
 
-  if (!userData || !currentMatch) {
+  if (!userData) {
     return (
       <View style={tw`flex-1 justify-center items-center`}>
         <Text style={tw`text-lg`}>
-          No matches available at the moment. Check back soon!
+          No profile available at the moment. Check back soon!
         </Text>
       </View>
     );
   }
-
-  const profileProps: ProfileProps = {
-    name: currentMatch.name,
-    age: currentMatch.age,
-    location: currentMatch.location,
-    profilePhoto: currentMatch.profilePhoto,
-    school: currentMatch.school,
-  };
 
   return (
     <SafeAreaView
@@ -205,7 +176,7 @@ export default function DiscoverScreen() {
     >
       <ScrollView style={tw`flex-1`}>
         <View style={tw`flex-row justify-between items-center p-4`}>
-          <Text style={tw`text-2xl font-bold`}>Hi {userData.name}!</Text>
+          <Text style={tw`text-2xl font-bold`}>Hi, {loggedInUserName}!</Text>
           <View style={tw`flex-row gap-4`}>
             <TouchableOpacity onPress={() => console.log("History pressed")}>
               <History size={24} color="#000" />
@@ -216,13 +187,78 @@ export default function DiscoverScreen() {
           </View>
         </View>
 
-        <Profile {...profileProps} />
+        <View style={{ height: viewportHeight }}>
+          <Image
+            source={{ uri: userData.profilePhoto }}
+            style={tw`w-full h-full`}
+            resizeMode="cover"
+          />
+          <View style={tw`absolute bottom-4 left-4 right-4`}>
+            <Text style={tw`text-white text-3xl font-bold`}>
+              {userData.firstName}, {userData.age}
+            </Text>
+            <View style={tw`flex-row items-center mt-1`}>
+              <MapPin size={16} color="#fff" />
+              <Text style={tw`text-white ml-1`}>{userData.location}</Text>
+            </View>
+            <View style={tw`flex-row items-center mt-1`}>
+              <Heart size={16} color="#fff" />
+              <Text style={tw`text-white ml-1`}>
+                {userData.mutualConnections} mutual connections
+              </Text>
+            </View>
+          </View>
+        </View>
 
-        <LikeBar
-          onDislike={nextMatch}
-          onLike={handleLike}
-          onSuperLike={handleSuperLike}
-        />
+        <View style={tw`flex-row justify-around py-4 bg-white`}>
+          <TouchableOpacity
+            style={tw`bg-gray-200 p-4 rounded-full`}
+            onPress={() => console.log("Dislike")}
+          >
+            <X size={24} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={tw`bg-indigo-900 p-4 rounded-full`}
+            onPress={() => console.log("Like")}
+          >
+            <Heart size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={tw`p-4`}>
+          <View style={tw`mb-4`}>
+            <View style={tw`flex-row items-center mb-2`}>
+              <GraduationCap size={20} color="#4B0082" />
+              <Text style={tw`ml-2`}>{userData.college}</Text>
+            </View>
+            <View style={tw`flex-row items-center mb-2`}>
+              <MapPin size={20} color="#4B0082" />
+              <Text style={tw`ml-2`}>{userData.location}</Text>
+            </View>
+            <View style={tw`flex-row items-center`}>
+              <Briefcase size={20} color="#4B0082" />
+              <Text style={tw`ml-2`}>{userData.job}</Text>
+            </View>
+          </View>
+
+          {Object.entries(userData.promptAnswers).map(
+            ([prompt, answer], index) => (
+              <View key={index} style={tw`mb-4`}>
+                <Text style={tw`font-bold mb-1`}>{prompt}</Text>
+                <Text>{answer}</Text>
+              </View>
+            )
+          )}
+
+          {userData.additionalPhotos.map((photo, index) => (
+            <Image
+              key={index}
+              source={{ uri: photo }}
+              style={tw`w-full h-64 mb-4 rounded-lg`}
+              resizeMode="cover"
+            />
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

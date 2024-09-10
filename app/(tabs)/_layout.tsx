@@ -8,6 +8,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={({ route }) => ({
+        headerShown: false, // This line hides the header for all tab screens
         tabBarIcon: ({ color, size }) => {
           let iconName: IconName;
 
