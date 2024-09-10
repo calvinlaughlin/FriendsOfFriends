@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { storeUserId } from "../../backend/userStorage";
 import Auth0 from "react-native-auth0";
 import { tailwind } from "../../tailwind";
 
@@ -34,6 +35,38 @@ const auth0 = new Auth0({
   domain: "dev-t5rnx1ug8uns7sxt.us.auth0.com",
   clientId: "mOr4wis0K462e0t2IT4GIA2tgpYD0vBJ",
 });
+
+async function createUserInBackend(userData: any) {
+  try {
+    console.log("Attempting to create user in backend");
+    const response = await fetch("http://localhost:5001/api/user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
+
+    console.log("Backend response status:", response.status);
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`Failed to create user in backend: ${response.status}`);
+    }
+
+    const data = JSON.parse(responseText);
+    console.log("User created successfully in backend");
+
+    if (!data._id) {
+      throw new Error("Backend did not return a user ID");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error creating user in backend:", error);
+    throw error;
+  }
+}
 
 const steps = [
   "What's your number?",
@@ -82,7 +115,7 @@ export default function SignUpScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log("Current step:", step);
+    // This effect can be used for any side effects that need to happen when the step changes
   }, [step]);
 
   function getEighteenYearsAgo() {
@@ -104,7 +137,6 @@ export default function SignUpScreen() {
     (text: string) => {
       const formatted = formatPhoneNumber(text);
       setPhoneNumber(formatted);
-      console.log("Phone number changed:", formatted);
     },
     [formatPhoneNumber]
   );
@@ -131,35 +163,10 @@ export default function SignUpScreen() {
     setCollege(value);
   }, []);
 
-  const handleClosestContactsComplete = useCallback(
-    (selectedContacts: Contact[]) => {
-      console.log(
-        "Received closest contacts in SignUpScreen:",
-        selectedContacts
-      );
-      setClosestContacts(selectedContacts);
-      handleNext();
-    },
-    []
-  );
-
-  const handleExcludedContactsComplete = useCallback(
-    (selectedContacts: Contact[]) => {
-      console.log(
-        "Received excluded contacts in SignUpScreen:",
-        selectedContacts
-      );
-      setExcludedContacts(selectedContacts);
-      handleNext();
-    },
-    []
-  );
-
   const handleNext = useCallback(async () => {
-    console.log("Attempting to move to next step. Current step:", step);
     if (step === 1 && isPhoneNumberValid()) {
       if (bypassVerification) {
-        setStep(2);
+        setStep(3);
       } else {
         try {
           const formattedNumber = "+1" + phoneNumber.replace(/\D/g, "");
@@ -173,9 +180,9 @@ export default function SignUpScreen() {
         }
       }
     } else if (step === 2) {
-      if (bypassVerification && otp === "123456") {
+      if (bypassVerification) {
         setStep(3);
-      } else if (!bypassVerification) {
+      } else {
         try {
           const formattedNumber = "+1" + phoneNumber.replace(/\D/g, "");
           await auth0.auth.loginWithSMS({
@@ -187,20 +194,19 @@ export default function SignUpScreen() {
           console.error("Error verifying OTP:", error);
           Alert.alert("Error", "Failed to verify OTP. Please try again.");
         }
-      } else {
-        Alert.alert("Error", "Invalid OTP. Please try again.");
       }
-    } else if (step < 15) {
+    } else if (step < 14) {
+      console.log(step);
       setStep((prevStep) => prevStep + 1);
-    } else if (step === 15) {
-      // Final step: create account
+    } else if (step === 14) {
+      console.log("Attempting to create user in backend");
       const accountData = {
         phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
         firstName,
-        birthday,
+        birthday: birthday.toISOString(),
         gender,
         desiredGender,
-        profilePhoto,
+        profilePhoto: profilePhoto || "",
         additionalPhotos,
         promptAnswers,
         location,
@@ -215,13 +221,38 @@ export default function SignUpScreen() {
           phoneNumber: contact.phoneNumber,
         })),
       };
-      console.log("Account created:", accountData);
-      // The navigation to the discover tab is now handled in the CongratsScreen component
+
+      try {
+        const createdUser = await createUserInBackend(accountData);
+        console.log("User created in backend");
+
+        if (createdUser && createdUser._id) {
+          console.log("Storing user ID in local storage:", createdUser._id);
+          await storeUserId(createdUser._id);
+          console.log("User ID stored successfully");
+
+          console.log("Navigating to discover screen");
+          router.push({
+            pathname: "/discover",
+            params: { newUser: JSON.stringify(createdUser) },
+          });
+        } else {
+          throw new Error("Created user does not have an _id property");
+        }
+      } catch (error) {
+        console.error("Failed to create user in backend:", error);
+        Alert.alert(
+          "Error",
+          "Failed to create your account. Please try again."
+        );
+      }
     }
   }, [
     step,
     phoneNumber,
     otp,
+    isPhoneNumberValid,
+    bypassVerification,
     firstName,
     birthday,
     gender,
@@ -234,9 +265,32 @@ export default function SignUpScreen() {
     job,
     closestContacts,
     excludedContacts,
-    bypassVerification,
-    isPhoneNumberValid,
+    router,
   ]);
+
+  const handleClosestContactsComplete = useCallback(
+    (selectedContacts: Contact[]) => {
+      console.log(
+        "Received closest contacts in SignUpScreen:",
+        selectedContacts
+      );
+      setClosestContacts(selectedContacts);
+      handleNext();
+    },
+    [handleNext]
+  );
+
+  const handleExcludedContactsComplete = useCallback(
+    (selectedContacts: Contact[]) => {
+      console.log(
+        "Received excluded contacts in SignUpScreen:",
+        selectedContacts
+      );
+      setExcludedContacts(selectedContacts);
+      handleNext();
+    },
+    [handleNext]
+  );
 
   const handleBack = useCallback(() => {
     if (step > 1) {
@@ -283,7 +337,6 @@ export default function SignUpScreen() {
   }, []);
 
   const renderStep = useCallback(() => {
-    console.log("Rendering step:", step);
     switch (step) {
       case 1:
         return (
@@ -375,10 +428,10 @@ export default function SignUpScreen() {
         const userData = {
           phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
           firstName,
-          birthday,
+          birthday: birthday.toISOString(),
           gender,
           desiredGender,
-          profilePhoto,
+          profilePhoto: profilePhoto || "",
           additionalPhotos,
           promptAnswers,
           location,

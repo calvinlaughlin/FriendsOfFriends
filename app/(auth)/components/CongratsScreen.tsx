@@ -5,7 +5,21 @@ import { tailwind } from "../../../tailwind";
 import { Image } from "lucide-react-native";
 
 interface CongratsScreenProps {
-  userData: any; // Replace 'any' with your actual user data type
+  userData: {
+    phoneNumber: string;
+    firstName: string;
+    birthday: string;
+    gender: string;
+    desiredGender: string;
+    profilePhoto: string;
+    additionalPhotos: string[];
+    promptAnswers: { [key: string]: string };
+    location: string;
+    college: string | null;
+    job: string;
+    closestContacts: { name: string; phoneNumber: string }[];
+    excludedContacts: { name: string; phoneNumber: string }[];
+  };
 }
 
 export default function CongratsScreen({ userData }: CongratsScreenProps) {

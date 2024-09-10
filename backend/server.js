@@ -23,15 +23,26 @@ mongoose.connect(MONGODB_URI)
     process.exit(1);
   });
 
+const ContactSchema = new mongoose.Schema({
+  name: String,
+  phoneNumber: String
+});
+
 const UserSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true, unique: true },
-  name: String,
+  firstName: String,
   location: String,
   profilePhoto: String,
+  additionalPhotos: [String],
+  birthday: Date,
   age: Number,
-  sex: String,
-  preference: String,
-  school: String,
+  gender: String,
+  desiredGender: String,
+  college: String,
+  job: String,
+  promptAnswers: { type: Map, of: String },
+  closestContacts: [ContactSchema],
+  excludedContacts: [ContactSchema],
   matches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
@@ -51,9 +62,39 @@ app.get('/api/user/:id', async (req, res) => {
 });
 
 app.post('/api/user', async (req, res) => {
-  const user = new User(req.body);
+  console.log('Received request to create user with data:', req.body);
   try {
-    const savedUser = await user.save();
+    const userData = req.body;
+    
+    // Calculate age from birthday
+    const birthDate = new Date(userData.birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    const newUser = new User({
+      phoneNumber: userData.phoneNumber,
+      firstName: userData.firstName,
+      location: userData.location,
+      profilePhoto: userData.profilePhoto,
+      additionalPhotos: userData.additionalPhotos,
+      birthday: userData.birthday,
+      age: age,
+      gender: userData.gender,
+      desiredGender: userData.desiredGender,
+      college: userData.college,
+      job: userData.job,
+      promptAnswers: userData.promptAnswers,
+      closestContacts: userData.closestContacts,
+      excludedContacts: userData.excludedContacts
+    });
+
+    console.log('Attempting to save new user to database');
+    const savedUser = await newUser.save();
+    console.log('User saved successfully:', savedUser);
     res.status(201).json(savedUser);
   } catch (error) {
     console.error('Error creating user:', error);
@@ -61,7 +102,6 @@ app.post('/api/user', async (req, res) => {
   }
 });
 
-// New login route
 app.post('/api/login', async (req, res) => {
   try {
     const { phoneNumber } = req.body;
@@ -74,19 +114,7 @@ app.post('/api/login', async (req, res) => {
     let user = await User.findOne({ phoneNumber });
     
     if (!user) {
-      // If user doesn't exist, create a new one
-      user = new User({
-        phoneNumber,
-        name: "Test User",
-        location: "Fakeplace",
-        profilePhoto: "",
-        age: 99,
-        sex: "Yes",
-        preference: "Please",
-        school: "St. Annford",
-        matches: ["66db6aa1e01b88556d4ffe03"]
-      });
-      await user.save();
+      return res.status(404).json({ message: 'User not found' });
     }
     
     // Return user data
@@ -97,7 +125,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// New route to update user information
 app.put('/api/user/:id', async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -111,7 +138,6 @@ app.put('/api/user/:id', async (req, res) => {
   }
 });
 
-// New route to add a match
 app.post('/api/user/:id/match', async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -130,6 +156,18 @@ app.post('/api/user/:id/match', async (req, res) => {
   } catch (error) {
     console.error('Error adding match:', error);
     res.status(400).json({ message: error.message });
+  }
+});
+
+app.get('/api/test', async (req, res) => {
+  try {
+    const testUser = new User({ phoneNumber: 'test' });
+    await testUser.save();
+    await User.deleteOne({ phoneNumber: 'test' });
+    res.json({ message: 'Database connection successful' });
+  } catch (error) {
+    console.error('Database test failed:', error);
+    res.status(500).json({ message: 'Database connection failed', error: error.message });
   }
 });
 

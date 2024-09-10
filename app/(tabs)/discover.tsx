@@ -10,13 +10,13 @@ import {
   StatusBar,
   Alert,
 } from "react-native";
-import { History, Menu, LogOut } from "lucide-react-native";
+import { History, Menu } from "lucide-react-native";
 import { create } from "twrnc";
 import axios, { AxiosError } from "axios";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import Profile, { ProfileProps } from "../components/Profile";
 import LikeBar from "../components/LikeBar";
-import LoginScreen from "../(auth)/login";
+import { getUserId, storeUserId } from "../../backend/userStorage";
 
 const tw = create(require("../../tailwind.config.js"));
 
@@ -32,38 +32,45 @@ interface UserData {
   matches: UserData[];
 }
 
-export default function HomeScreen() {
+export default function DiscoverScreen() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [currentMatch, setCurrentMatch] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
   const params = useLocalSearchParams();
 
   useEffect(() => {
-    if (params.newUser) {
-      const newUserData = JSON.parse(params.newUser as string);
-      console.log("New user data:", newUserData);
-      setUserData(newUserData);
-      setIsLoggedIn(true);
-    }
+    const initializeUser = async () => {
+      if (params.newUser) {
+        const newUserData = JSON.parse(params.newUser as string);
+        console.log("New user data:", newUserData);
+        await storeUserId(newUserData._id);
+        setUserData(newUserData);
+        if (newUserData.matches && newUserData.matches.length > 0) {
+          setCurrentMatch(newUserData.matches[0]);
+        }
+        setLoading(false);
+      } else {
+        fetchUserData();
+      }
+    };
+
+    initializeUser();
   }, [params.newUser]);
 
-  useEffect(() => {
-    if (isLoggedIn && userData?._id) {
-      fetchUserData();
-    }
-  }, [isLoggedIn, userData?._id]);
-
   const fetchUserData = async () => {
-    if (!userData?._id) return;
-
     setLoading(true);
     setError(null);
     try {
+      const userId = await getUserId();
+      if (!userId) {
+        router.replace("/(auth)/login");
+        return;
+      }
+
       const response = await axios.get<UserData>(
-        `http://localhost:5001/api/user/${userData._id}`
+        `http://localhost:5001/api/user/${userId}`
       );
       setUserData(response.data);
       if (response.data.matches.length > 0) {
@@ -97,44 +104,6 @@ export default function HomeScreen() {
     }
   };
 
-  const handleLogin = async (phoneNumber: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.post<UserData>(
-        "http://localhost:5001/api/login",
-        {
-          phoneNumber,
-        }
-      );
-
-      if (response.data && response.data._id) {
-        setIsLoggedIn(true);
-        setUserData(response.data);
-      } else {
-        throw new Error("Invalid response from server");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      setError(
-        "We couldn't log you in. Please check your phone number and try again."
-      );
-      Alert.alert("Login Error", "We couldn't log you in. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateAccount = () => {
-    router.push("/(auth)/signup");
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserData(null);
-    setCurrentMatch(null);
-  };
-
   const nextMatch = () => {
     if (userData && userData.matches) {
       const currentIndex = userData.matches.findIndex(
@@ -155,58 +124,53 @@ export default function HomeScreen() {
     nextMatch();
   };
 
-  const renderMainContent = () => {
-    if (!isLoggedIn) {
-      return (
-        <LoginScreen
-          onLogin={handleLogin}
-          onCreateAccount={handleCreateAccount}
-        />
-      );
-    }
-
-    if (loading) {
-      return (
-        <View style={tw`flex-1 justify-center items-center`}>
-          <ActivityIndicator size="large" color="#4B0082" />
-          <Text style={tw`mt-4 text-lg`}>Loading your perfect matches...</Text>
-        </View>
-      );
-    }
-
-    if (error) {
-      return (
-        <View style={tw`flex-1 justify-center items-center p-4`}>
-          <Text style={tw`text-lg text-red-500 mb-4 text-center`}>{error}</Text>
-          <TouchableOpacity
-            style={tw`bg-indigo-900 py-2 px-4 rounded`}
-            onPress={fetchUserData}
-          >
-            <Text style={tw`text-white font-bold`}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    if (!userData || !currentMatch) {
-      return (
-        <View style={tw`flex-1 justify-center items-center`}>
-          <Text style={tw`text-lg`}>
-            No matches available at the moment. Check back soon!
-          </Text>
-        </View>
-      );
-    }
-
-    const profileProps: ProfileProps = {
-      name: currentMatch.name,
-      age: currentMatch.age,
-      location: currentMatch.location,
-      profilePhoto: currentMatch.profilePhoto,
-      school: currentMatch.school,
-    };
-
+  if (loading) {
     return (
+      <View style={tw`flex-1 justify-center items-center`}>
+        <ActivityIndicator size="large" color="#4B0082" />
+        <Text style={tw`mt-4 text-lg`}>Loading your perfect matches...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={tw`flex-1 justify-center items-center p-4`}>
+        <Text style={tw`text-lg text-red-500 mb-4 text-center`}>{error}</Text>
+        <TouchableOpacity
+          style={tw`bg-indigo-900 py-2 px-4 rounded`}
+          onPress={fetchUserData}
+        >
+          <Text style={tw`text-white font-bold`}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!userData || !currentMatch) {
+    return (
+      <View style={tw`flex-1 justify-center items-center`}>
+        <Text style={tw`text-lg`}>
+          No matches available at the moment. Check back soon!
+        </Text>
+      </View>
+    );
+  }
+
+  const profileProps: ProfileProps = {
+    name: currentMatch.name,
+    age: currentMatch.age,
+    location: currentMatch.location,
+    profilePhoto: currentMatch.profilePhoto,
+    school: currentMatch.school,
+  };
+
+  return (
+    <SafeAreaView
+      style={tw`flex-1 bg-white ${
+        Platform.OS === "android" ? `pt-[${StatusBar.currentHeight}px]` : ""
+      }`}
+    >
       <ScrollView style={tw`flex-1`}>
         <View style={tw`flex-row justify-between items-center p-4`}>
           <Text style={tw`text-2xl font-bold`}>Hi {userData.name}!</Text>
@@ -216,9 +180,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity onPress={() => console.log("Menu pressed")}>
               <Menu size={24} color="#000" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleLogout}>
-              <LogOut size={24} color="#000" />
             </TouchableOpacity>
           </View>
         </View>
@@ -231,16 +192,6 @@ export default function HomeScreen() {
           onSuperLike={handleSuperLike}
         />
       </ScrollView>
-    );
-  };
-
-  return (
-    <SafeAreaView
-      style={tw`flex-1 bg-white ${
-        Platform.OS === "android" ? `pt-[${StatusBar.currentHeight}px]` : ""
-      }`}
-    >
-      <View style={tw`flex-1`}>{renderMainContent()}</View>
     </SafeAreaView>
   );
 }
