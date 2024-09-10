@@ -25,10 +25,10 @@ export const storeUserId = async (userId: string) => {
     }
   };
 
-export const removeUserId = async () => {
-  try {
-    await AsyncStorage.removeItem(USER_ID_KEY);
-  } catch (e) {
-    console.error('Failed to remove user ID', e);
-  }
-};
+  export const removeUserId = async () => {
+    try {
+      await AsyncStorage.removeItem('user_id');
+    } catch (error) {
+      console.error('Error removing user ID:', error);
+    }
+  };

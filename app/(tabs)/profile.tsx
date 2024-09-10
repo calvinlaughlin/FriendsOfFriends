@@ -1,4 +1,3 @@
-// profile.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,10 +8,12 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import axios, { AxiosError } from "axios";
 import { format } from "date-fns";
 import { getUserId } from "../../backend/userStorage";
+import SignOutButton from "../components/SignOutButton";
+import DeleteAccountButton from "../components/DeleteAccountButton";
 
 interface Contact {
   name: string;
@@ -186,6 +187,11 @@ export default function Profile() {
           </Text>
         ))}
       </View>
+
+      <View style={styles.actionButtons}>
+        <SignOutButton />
+        <DeleteAccountButton userId={userData._id} />
+      </View>
     </ScrollView>
   );
 }
@@ -243,5 +249,9 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 18,
     color: "red",
+  },
+  actionButtons: {
+    padding: 16,
+    marginTop: 16,
   },
 });

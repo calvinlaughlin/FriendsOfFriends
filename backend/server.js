@@ -159,6 +159,27 @@ app.post('/api/user/:id/match', async (req, res) => {
   }
 });
 
+// New endpoint for deleting a user
+app.delete('/api/user/:id', async (req, res) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    if (!deletedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Remove this user from other users' matches
+    await User.updateMany(
+      { matches: req.params.id },
+      { $pull: { matches: req.params.id } }
+    );
+
+    res.json({ message: 'User deleted successfully', deletedUser });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 app.get('/api/test', async (req, res) => {
   try {
     const testUser = new User({ phoneNumber: 'test' });

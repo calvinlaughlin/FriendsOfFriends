@@ -32,6 +32,46 @@ interface UserData {
   matches: UserData[];
 }
 
+// Dummy data for visualization
+const dummyMatches: UserData[] = [
+  {
+    _id: "1",
+    name: "Alice",
+    location: "New York, NY",
+    profilePhoto:
+      "https://st3.depositphotos.com/9998432/13335/v/380/depositphotos_133351974-stock-illustration-default-placeholder-woman.jpg",
+    age: 25,
+    sex: "Female",
+    preference: "Male",
+    school: "NYU",
+    matches: [],
+  },
+  {
+    _id: "2",
+    name: "Bob",
+    location: "Los Angeles, CA",
+    profilePhoto:
+      "https://media.istockphoto.com/id/1130424979/vector/person-gray-photo-placeholder-man.jpg?s=612x612&w=0&k=20&c=Oc5r-nuA8FxnBBFSa6azLq5bWDyPZlKNu-8qFrUDy5I=",
+    age: 28,
+    sex: "Male",
+    preference: "Female",
+    school: "UCLA",
+    matches: [],
+  },
+  {
+    _id: "3",
+    name: "Charlie",
+    location: "Chicago, IL",
+    profilePhoto:
+      "https://iidamidamerica.org/wp-content/uploads/2020/12/male-placeholder-image.jpeg",
+    age: 23,
+    sex: "Male",
+    preference: "Female",
+    school: "University of Chicago",
+    matches: [],
+  },
+];
+
 export default function DiscoverScreen() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [currentMatch, setCurrentMatch] = useState<UserData | null>(null);
@@ -46,10 +86,8 @@ export default function DiscoverScreen() {
         const newUserData = JSON.parse(params.newUser as string);
         console.log("New user data:", newUserData);
         await storeUserId(newUserData._id);
-        setUserData(newUserData);
-        if (newUserData.matches && newUserData.matches.length > 0) {
-          setCurrentMatch(newUserData.matches[0]);
-        }
+        setUserData({ ...newUserData, matches: dummyMatches });
+        setCurrentMatch(dummyMatches[0]);
         setLoading(false);
       } else {
         fetchUserData();
@@ -69,31 +107,25 @@ export default function DiscoverScreen() {
         return;
       }
 
-      const response = await axios.get<UserData>(
-        `http://localhost:5001/api/user/${userId}`
-      );
-      setUserData(response.data);
-      if (response.data.matches.length > 0) {
-        setCurrentMatch(response.data.matches[0]);
-      }
+      // Simulating API call with dummy data
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const dummyUserData: UserData = {
+        _id: userId,
+        name: "Calvin",
+        location: "San Francisco, CA",
+        profilePhoto:
+          "https://st3.depositphotos.com/9998432/13335/v/380/depositphotos_133351974-stock-illustration-default-placeholder-woman.jpg",
+        age: 30,
+        sex: "Male",
+        preference: "Female",
+        school: "Stanford",
+        matches: dummyMatches,
+      };
+      setUserData(dummyUserData);
+      setCurrentMatch(dummyMatches[0]);
     } catch (error) {
       console.error("Error fetching user data:", error);
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response) {
-          setError(
-            `Unable to fetch your data. Please try again later. (Error: ${axiosError.response.status})`
-          );
-        } else if (axiosError.request) {
-          setError(
-            "We're having trouble connecting to our servers. Please check your internet connection and try again."
-          );
-        } else {
-          setError("Something went wrong. Please try again.");
-        }
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
+      setError("An unexpected error occurred. Please try again.");
       Alert.alert(
         "Oops!",
         error instanceof Error ? error.message : String(error),
