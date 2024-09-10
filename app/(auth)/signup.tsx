@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import CollegeStep from "./components/CollegeStep";
 import JobStep from "./components/JobStep";
 import NetworkSetupStep from "./components/NetworkSetupStep";
 import ClosestContactsStep from "./components/ClosestContactsStep";
+import CongratsScreen from "./components/CongratsScreen";
 
 const auth0 = new Auth0({
   domain: "dev-t5rnx1ug8uns7sxt.us.auth0.com",
@@ -47,7 +48,14 @@ const steps = [
   "What do you do?",
   "Set up your network",
   "Choose your closest contacts",
+  "Congratulations!",
 ];
+
+interface Contact {
+  id: string;
+  name: string;
+  phoneNumber: string;
+}
 
 export default function SignUpScreen() {
   const [step, setStep] = useState(1);
@@ -66,8 +74,13 @@ export default function SignUpScreen() {
   const [location, setLocation] = useState("");
   const [college, setCollege] = useState<string | null>(null);
   const [job, setJob] = useState("");
+  const [closestContacts, setClosestContacts] = useState<Contact[]>([]);
   const [bypassVerification, setBypassVerification] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    console.log("Current step:", step);
+  }, [step]);
 
   function getEighteenYearsAgo() {
     const date = new Date();
@@ -75,43 +88,57 @@ export default function SignUpScreen() {
     return date;
   }
 
-  const formatPhoneNumber = (number: string) => {
+  const formatPhoneNumber = useCallback((number: string) => {
     const cleaned = number.replace(/\D/g, "");
     const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
     if (match) {
       return `${match[1]}-${match[2]}-${match[3]}`;
     }
     return number;
-  };
-
-  const handlePhoneNumberChange = useCallback((text: string) => {
-    const formatted = formatPhoneNumber(text);
-    setPhoneNumber(formatted);
   }, []);
 
-  const isPhoneNumberValid = () => {
+  const handlePhoneNumberChange = useCallback(
+    (text: string) => {
+      const formatted = formatPhoneNumber(text);
+      setPhoneNumber(formatted);
+      console.log("Phone number changed:", formatted);
+    },
+    [formatPhoneNumber]
+  );
+
+  const isPhoneNumberValid = useCallback(() => {
     const cleaned = phoneNumber.replace(/\D/g, "");
     return cleaned.length === 10;
-  };
+  }, [phoneNumber]);
 
-  const handlePromptAnswer = (prompt: string, answer: string) => {
+  const handlePromptAnswer = useCallback((prompt: string, answer: string) => {
     setPromptAnswers((prev) => ({ ...prev, [prompt]: answer }));
-  };
+  }, []);
 
-  const handlePromptStepComplete = () => {
+  const handlePromptStepComplete = useCallback(() => {
     setIsPromptStepComplete(true);
-  };
+  }, []);
 
-  const handleSkipCollege = () => {
+  const handleSkipCollege = useCallback(() => {
     setCollege(null);
-    handleNext();
-  };
+    setStep((prevStep) => prevStep + 1);
+  }, []);
 
-  const handleCollegeChange = (value: string | null) => {
+  const handleCollegeChange = useCallback((value: string | null) => {
     setCollege(value);
-  };
+  }, []);
 
-  const handleNext = async () => {
+  const handleClosestContactsComplete = useCallback(
+    (selectedContacts: Contact[]) => {
+      console.log("Received contacts in SignUpScreen:", selectedContacts);
+      setClosestContacts(selectedContacts);
+      handleNext();
+    },
+    []
+  );
+
+  const handleNext = useCallback(async () => {
+    console.log("Attempting to move to next step. Current step:", step);
     if (step === 1 && isPhoneNumberValid()) {
       if (bypassVerification) {
         setStep(2);
@@ -145,11 +172,11 @@ export default function SignUpScreen() {
       } else {
         Alert.alert("Error", "Invalid OTP. Please try again.");
       }
-    } else if (step < 13) {
-      setStep(step + 1);
-    } else if (step === 13) {
+    } else if (step < 14) {
+      setStep((prevStep) => prevStep + 1);
+    } else if (step === 14) {
       // Final step: create account
-      console.log("Account created:", {
+      const accountData = {
         phoneNumber: "+1" + phoneNumber.replace(/\D/g, ""),
         firstName,
         birthday,
@@ -161,50 +188,80 @@ export default function SignUpScreen() {
         location,
         college,
         job,
-      });
+        closestContacts: closestContacts.map((contact) => ({
+          name: contact.name,
+          phoneNumber: contact.phoneNumber,
+        })),
+      };
+      console.log("Account created:", accountData);
       router.replace("/(tabs)/discover");
     }
-  };
+  }, [
+    step,
+    phoneNumber,
+    otp,
+    firstName,
+    birthday,
+    gender,
+    desiredGender,
+    profilePhoto,
+    additionalPhotos,
+    promptAnswers,
+    location,
+    college,
+    job,
+    closestContacts,
+    bypassVerification,
+    isPhoneNumberValid,
+    router,
+  ]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (step > 1) {
-      setStep(step - 1);
+      setStep((prevStep) => prevStep - 1);
     } else {
       router.back();
     }
-  };
+  }, [step, router]);
 
-  const handleBirthdayChange = (event: any, selectedDate?: Date) => {
-    const currentDate = selectedDate || birthday;
-    const eighteenYearsAgo = getEighteenYearsAgo();
+  const handleBirthdayChange = useCallback(
+    (event: any, selectedDate?: Date) => {
+      const currentDate = selectedDate || birthday;
+      const eighteenYearsAgo = getEighteenYearsAgo();
 
-    if (currentDate > eighteenYearsAgo) {
-      Alert.alert(
-        "Invalid Date",
-        "You must be at least 18 years old to sign up."
-      );
-    } else {
-      setBirthday(currentDate);
-    }
-  };
+      if (currentDate > eighteenYearsAgo) {
+        Alert.alert(
+          "Invalid Date",
+          "You must be at least 18 years old to sign up."
+        );
+      } else {
+        setBirthday(currentDate);
+      }
+    },
+    [birthday]
+  );
 
-  const handleImageUpload = (uri: string, isProfilePhoto: boolean) => {
-    if (isProfilePhoto) {
-      setProfilePhoto(uri);
-    } else {
-      setAdditionalPhotos((prev) => [...prev, uri].slice(0, 6));
-    }
-  };
+  const handleImageUpload = useCallback(
+    (uri: string, isProfilePhoto: boolean) => {
+      if (isProfilePhoto) {
+        setProfilePhoto(uri);
+      } else {
+        setAdditionalPhotos((prev) => [...prev, uri].slice(0, 6));
+      }
+    },
+    []
+  );
 
-  const handleDeletePhoto = (index: number) => {
+  const handleDeletePhoto = useCallback((index: number) => {
     if (index === -1) {
       setProfilePhoto(null);
     } else {
       setAdditionalPhotos((prev) => prev.filter((_, i) => i !== index));
     }
-  };
+  }, []);
 
-  const renderStep = () => {
+  const renderStep = useCallback(() => {
+    console.log("Rendering step:", step);
     switch (step) {
       case 1:
         return (
@@ -282,11 +339,39 @@ export default function SignUpScreen() {
           />
         );
       case 13:
-        return <ClosestContactsStep onComplete={handleNext} />;
+        return (
+          <ClosestContactsStep onComplete={handleClosestContactsComplete} />
+        );
+      case 14:
+        return <CongratsScreen onContinue={handleNext} />;
       default:
-        return null;
+        return <Text>Unknown step</Text>;
     }
-  };
+  }, [
+    step,
+    phoneNumber,
+    otp,
+    firstName,
+    birthday,
+    gender,
+    desiredGender,
+    profilePhoto,
+    additionalPhotos,
+    location,
+    college,
+    job,
+    bypassVerification,
+    handlePhoneNumberChange,
+    handleBirthdayChange,
+    handleImageUpload,
+    handleDeletePhoto,
+    handlePromptAnswer,
+    handlePromptStepComplete,
+    handleCollegeChange,
+    handleSkipCollege,
+    handleClosestContactsComplete,
+    handleNext,
+  ]);
 
   return (
     <>
@@ -320,33 +405,37 @@ export default function SignUpScreen() {
                   </View>
                 )}
                 {renderStep()}
-                <View style={tailwind`flex-row justify-between mt-4`}>
-                  <TouchableOpacity
-                    onPress={handleBack}
-                    style={tailwind`bg-gray-200 rounded-md p-3`}
-                  >
-                    <Text style={tailwind`text-gray-800 font-semibold`}>
-                      Back
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleNext}
-                    style={tailwind`bg-indigo-600 rounded-md p-3 ${
-                      (step === 1 && !isPhoneNumberValid()) ||
-                      (step === 8 && !isPromptStepComplete) ||
-                      (step === 9 && !location.trim())
-                        ? "opacity-50"
-                        : ""
-                    }`}
-                    disabled={
-                      (step === 1 && !isPhoneNumberValid()) ||
-                      (step === 8 && !isPromptStepComplete) ||
-                      (step === 9 && !location.trim())
-                    }
-                  >
-                    <Text style={tailwind`text-white font-semibold`}>Next</Text>
-                  </TouchableOpacity>
-                </View>
+                {step < 12 && (
+                  <View style={tailwind`flex-row justify-between mt-4`}>
+                    <TouchableOpacity
+                      onPress={handleBack}
+                      style={tailwind`bg-gray-200 rounded-md p-3`}
+                    >
+                      <Text style={tailwind`text-gray-800 font-semibold`}>
+                        Back
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleNext}
+                      style={tailwind`bg-indigo-600 rounded-md p-3 ${
+                        (step === 1 && !isPhoneNumberValid()) ||
+                        (step === 8 && !isPromptStepComplete) ||
+                        (step === 9 && !location.trim())
+                          ? "opacity-50"
+                          : ""
+                      }`}
+                      disabled={
+                        (step === 1 && !isPhoneNumberValid()) ||
+                        (step === 8 && !isPromptStepComplete) ||
+                        (step === 9 && !location.trim())
+                      }
+                    >
+                      <Text style={tailwind`text-white font-semibold`}>
+                        Next
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </ScrollView>
           </KeyboardAvoidingView>
