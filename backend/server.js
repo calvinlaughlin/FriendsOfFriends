@@ -43,7 +43,8 @@ const UserSchema = new mongoose.Schema({
   promptAnswers: { type: Map, of: String },
   closestContacts: [ContactSchema],
   excludedContacts: [ContactSchema],
-  matches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  matches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  viewedProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
 const User = mongoose.model('User', UserSchema);
@@ -89,7 +90,8 @@ app.post('/api/user', async (req, res) => {
       job: userData.job,
       promptAnswers: userData.promptAnswers,
       closestContacts: userData.closestContacts,
-      excludedContacts: userData.excludedContacts
+      excludedContacts: userData.excludedContacts,
+      viewedProfiles: []
     });
 
     console.log('Attempting to save new user to database');
@@ -159,7 +161,6 @@ app.post('/api/user/:id/match', async (req, res) => {
   }
 });
 
-// New endpoint for deleting a user
 app.delete('/api/user/:id', async (req, res) => {
   try {
     const deletedUser = await User.findByIdAndDelete(req.params.id);
@@ -176,6 +177,57 @@ app.delete('/api/user/:id', async (req, res) => {
     res.json({ message: 'User deleted successfully', deletedUser });
   } catch (error) {
     console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/users/:id/potential-matches', async (req, res) => {
+  try {
+    const currentUserId = req.params.id;
+    const currentUser = await User.findById(currentUserId);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'Current user not found' });
+    }
+
+    const potentialMatches = await User.aggregate([
+      { $match: { 
+        _id: { $ne: new mongoose.Types.ObjectId(currentUserId) },
+        gender: currentUser.desiredGender,
+        desiredGender: currentUser.gender
+      }},
+      { $sample: { size: 5 } },
+      { $project: {
+        _id: 1,
+        firstName: 1,
+        age: 1,
+        location: 1,
+        profilePhoto: 1,
+        college: 1,
+        job: 1,
+        promptAnswers: 1,
+        additionalPhotos: 1,
+        closestContacts: 1
+      }}
+    ]);
+
+    // Calculate mutual connections
+    const potentialMatchesWithMutualConnections = potentialMatches.map(match => {
+      const mutualConnections = match.closestContacts.filter(contact => 
+        currentUser.closestContacts.some(userContact => 
+          userContact.phoneNumber === contact.phoneNumber
+        )
+      ).length;
+
+      return {
+        ...match,
+        mutualConnections,
+        closestContacts: undefined // Remove closestContacts from the response
+      };
+    });
+
+    res.json(potentialMatchesWithMutualConnections);
+  } catch (error) {
+    console.error('Error fetching potential matches:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
