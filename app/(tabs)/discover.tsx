@@ -57,6 +57,7 @@ const useViewportHeight = () => {
 export default function Component() {
   const [potentialMatches, setPotentialMatches] = useState<UserData[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [loggedInUserId, setLoggedInUserId] = useState<string>("");
   const [loggedInUserName, setLoggedInUserName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +72,7 @@ export default function Component() {
         if (!userId) {
           throw new Error("No user ID found. Please log in again.");
         }
+        setLoggedInUserId(userId);
         const [userResponse, matchesResponse] = await Promise.all([
           axios.get(`http://localhost:5001/api/user/${userId}`),
           axios.get(
@@ -90,8 +92,24 @@ export default function Component() {
     initializeUser();
   }, []);
 
-  const handleLikeDislike = (action: "like" | "dislike") => {
-    console.log(`${action} user: ${potentialMatches[currentMatchIndex]?._id}`);
+  const handleLikeDislike = async (action: "like" | "dislike") => {
+    const currentMatch = potentialMatches[currentMatchIndex];
+    console.log(`${action} user: ${currentMatch._id}`);
+
+    if (action === "like") {
+      try {
+        await axios.post(
+          `http://localhost:5001/api/user/${loggedInUserId}/like`,
+          {
+            likedUserId: currentMatch._id,
+          }
+        );
+        console.log("User liked successfully");
+      } catch (error) {
+        console.error("Error liking user:", error);
+        // You might want to show an error message to the user here
+      }
+    }
 
     // Move to the next match
     setCurrentMatchIndex(

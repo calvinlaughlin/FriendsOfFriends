@@ -44,7 +44,8 @@ const UserSchema = new mongoose.Schema({
   closestContacts: [ContactSchema],
   excludedContacts: [ContactSchema],
   matches: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  viewedProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  viewedProfiles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  likedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
 const User = mongoose.model('User', UserSchema);
@@ -228,6 +229,28 @@ app.get('/api/users/:id/potential-matches', async (req, res) => {
     res.json(potentialMatchesWithMutualConnections);
   } catch (error) {
     console.error('Error fetching potential matches:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/user/:id/like', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { likedUserId } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.likedUsers.includes(likedUserId)) {
+      user.likedUsers.push(likedUserId);
+      await user.save();
+    }
+
+    res.json({ message: 'User liked successfully' });
+  } catch (error) {
+    console.error('Error liking user:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
