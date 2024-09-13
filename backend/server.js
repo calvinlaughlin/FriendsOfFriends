@@ -268,6 +268,49 @@ app.get('/api/user/:id/liked-users', async (req, res) => {
   }
 });
 
+app.get('/api/users/search', async (req, res) => {
+  try {
+    const { query, userId } = req.query;
+    const currentUser = await User.findById(userId);
+    
+    if (!currentUser) {
+      return res.status(404).json({ message: 'Current user not found' });
+    }
+
+    const users = await User.find({
+      $and: [
+        { _id: { $ne: userId } },
+        {
+          $or: [
+            { firstName: new RegExp(query, 'i') },
+            { phoneNumber: new RegExp(query, 'i') }
+          ]
+        }
+      ]
+    }).limit(20);
+
+    const usersWithMutualConnections = users.map(user => {
+      const mutualConnections = user.closestContacts.filter(contact => 
+        currentUser.closestContacts.some(userContact => 
+          userContact.phoneNumber === contact.phoneNumber
+        )
+      ).length;
+
+      return {
+        _id: user._id,
+        firstName: user.firstName,
+        profilePhoto: user.profilePhoto,
+        mutualConnections
+      };
+    });
+
+    res.json(usersWithMutualConnections);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 app.get('/api/test', async (req, res) => {
   try {
     const testUser = new User({ phoneNumber: 'test' });
