@@ -255,6 +255,19 @@ app.post('/api/user/:id/like', async (req, res) => {
   }
 });
 
+app.get('/api/user/:id/liked-users', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).populate('likedUsers', 'firstName profilePhoto');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user.likedUsers);
+  } catch (error) {
+    console.error('Error fetching liked users:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 app.get('/api/test', async (req, res) => {
   try {
     const testUser = new User({ phoneNumber: 'test' });
